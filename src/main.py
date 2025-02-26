@@ -35,7 +35,7 @@ for i, audio_file in enumerate(audio_files):
     output_filename = f"output_{i+1}.txt"
     with open(f"test/{output_filename}", "w") as f:
         f.write(result["text"])
-    print(f"Output saved to {f"test/{output_filename}"}")
+    print(f"Output saved to test/{output_filename}")
     print(f"Processing time for {audio_file}: {end_time - start_time:.2f} seconds")
 
 
