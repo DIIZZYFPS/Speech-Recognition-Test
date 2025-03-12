@@ -8,9 +8,9 @@ torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
 #model_id = "openai/whisper-large-v3-turbo" # This model is the most accurate, but also the slowest
 
-#model_id = "openai/whisper-tiny.en" # This model is smaller and faster, but less accurate
+model_id = "openai/whisper-tiny.en" # This model is smaller and faster, but less accurate
 
-model_id = "openai/whisper-small.en" # This model is the sweet spot between speed and accuracy
+#model_id = "openai/whisper-small.en" # This model is the sweet spot between speed and accuracy
 
 model = AutoModelForSpeechSeq2Seq.from_pretrained(
     model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=False, use_safetensors=True
