@@ -1,0 +1,10 @@
+- <b>Build Tool Definition:</b> A build tool automates the process of creating software packages, encompassing compilation, testing, packaging, and deployment.
+- <b>IDE Limitations:</b> Maven offers consistency across different IDEs and platforms, and allows for customization beyond IDE capabilities.
+- <b>Maven Popularity:</b> 76% of Java developers use Maven.
+- <b>Influence on Other Tools:</b> Maven's design principles influence newer build tools like Gradle.
+- <b>Project Coordinates:</b> Group ID, Artifact ID, and version (collectively known as mainline coordinates) uniquely identify a project.
+- <b>Default Directory Structure:</b> Maven uses a standard directory structure (SRC, target) for organizing project files.
+- <b>Build Lifecycle Phases:</b> Maven utilizes a build lifecycle with phases like compile, test, install, and deploy.
+- <b>Archetypes:</b> Maven archetypes provide project templates for faster project creation.
+- <b>Dependency Management:</b> Maven automatically manages project dependencies, including transitive dependencies.
+- <b>pom.xml:</b> The pom.xml file is the build file that describes the project's structure and build process.
