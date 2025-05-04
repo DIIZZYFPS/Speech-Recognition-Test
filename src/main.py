@@ -2,6 +2,9 @@ import torch
 from transformers import WhisperForConditionalGeneration, WhisperProcessor, pipeline
 import time
 
+#torch.backends.cuda.enable_mem_efficient_sdp(False)
+#torch.backends.cuda.enable_flash_sdp(False)
+
 # Load the model and processor
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
@@ -40,6 +43,8 @@ try:
         model="google/gemma-3-4b-it", # Or another Gemma IT model
         torch_dtype=torch_dtype,
         device=device,
+        
+        
 
         # Add quantization config here if needed and not part of the model name
         # e.g., load_in_4bit=True (requires bitsandbytes)
@@ -48,7 +53,7 @@ try:
     gemma_tokenizer = generator.tokenizer
     # Get model's max length - Gemma 2 has 8192, Gemma 3 has more
     # Use a safe margin, e.g., 7000 for Gemma 2, or higher for Gemma 3
-    MAX_TOKENS = 7000 # Adjust based on the specific Gemma model
+    MAX_TOKENS = 4096 # Adjust based on the specific Gemma model
     print(f"Using Gemma model: {generator.model.config._name_or_path}")
 
 except Exception as e:
@@ -115,7 +120,7 @@ Main Theme:
 [Identify the single main topic or purpose of the text in one sentence]
 
 Key Points:
-- [Extract 3-5 important points, facts, or arguments as concise bullet points. Avoid repetition.]
+- [Extract 8-12 important points, facts, or arguments as concise bullet points. Avoid repetition.]
 
 Key Terms:
 - [Extract important terms or phrases that are relevant to the context and define them. Bold key terms.]
@@ -130,7 +135,7 @@ Main Theme:""" # Guide the model to start outputting with "Main Theme:"
             try:
                 # Adjust generation parameters: Increase max_new_tokens slightly?
                 # 300 might be tight for Theme + Points + Summary paragraph. Try 400-500?
-                outputs = generator(prompt, max_new_tokens=700, do_sample=False, temperature=0.3) # Increased max_new_tokens slightly
+                outputs = generator(prompt, max_new_tokens=700, do_sample=True, temperature=0.3) # Increased max_new_tokens slightly
 
                 # Extract the generated text after the prompt's static part
                 # Careful with slicing - need to account for the length of the static part
@@ -143,13 +148,13 @@ Main Theme:
 [Identify the single main topic or purpose of the text in one sentence]
 
 Key Points:
-- [Extract 3-5 important points, facts, or arguments as concise bullet points. Avoid repetition.]
+- [Extract 8-12 important points, facts, or arguments as concise bullet points. Avoid repetition.]
 
 Key Terms:
 - [Extract important terms or phrases that are relevant to the context and define them. Bold key terms.]
 
 Summary:
-[Provide a brief 3-5 sentence overall summary paragraph based on the key points.]
+[Provide a brief 5-7 sentence overall summary paragraph based on the key points.]
 
 Markdown Output:
 Main Theme:"""
@@ -193,6 +198,81 @@ Main Theme:"""
     # Join summaries (adjust separator if needed, e.g., "\n\n" for bullet lists)
     summary_text = "\n".join(summaries)
     end_time = time.time()
+
+    if len(chunks) > 1:
+        # If we have multiple chunks, we need to synthesize them into a final summary
+        print("Synthesizing final summary from chunk summaries...")
+        reducer_prompt = f"""The following text consists of summaries from consecutive chunks of a longer document:
+
+{summary_text}
+
+Instruction:
+Synthesize the information from the chunk summaries above into a single, cohesive final summary covering the main theme, key points, and key terms of the original document. Format the output using Markdown. Structure your response as follows:
+
+### Overall Main Theme
+[...]
+
+### Overall Key Points
+- [...]
+
+### Overall Key Terms
+- [...]
+
+### Final Summary Paragraph
+[...]
+
+Final Synthesized Summary:
+### Overall Main Theme"""
+        
+        try:
+            final_summary_output = generator(reducer_prompt, max_new_tokens=1000, do_sample=True, temperature=0.3)
+            final_summary_text = final_summary_output[0]['generated_text']
+
+
+            # Extract the final summary text after the prompt's static part
+            # Similar to the chunk summary extraction, but now we have a different prompt
+            # We need the length of the prompt *without* the chunk text to slice correctly
+            static_prompt_part = """The following text consists of summaries from consecutive chunks of a longer document:
+
+[Placeholder for chunk summaries]
+
+Instruction: 
+Synthesize the information from the chunk summaries above into a single, cohesive final summary covering the main theme, key points, and key terms of the original document. Format the output using Markdown. Structure your response as follows:
+
+### Overall Main Theme
+[...]
+
+### Overall Key Points
+- [...]
+
+### Overall Key Terms
+- [...]
+
+### Final Summary Paragraph
+[...]
+
+Final Synthesized Summary:
+### Overall Main Theme"""
+            final_generated_summary = ""
+            # Find the start of the generated content
+            start_marker = "Final Synthesized Summary:\n### Overall Main Theme"
+            start_index = final_summary_text.find(start_marker)
+            if start_index != -1:
+                # Get the text *after* the marker
+                final_generated_summary = final_summary_text[start_index + len(start_marker):].strip()
+                # Prepend the marker title for clarity in the output file
+                final_generated_summary = "### Overall Main Theme:\n" + final_generated_summary
+            else:
+                # Fallback if marker isn't found (model might behave unexpectedly)
+                print("Warning: Could not reliably slice prompt from final output. Using basic slicing.")
+                final_generated_summary = final_summary_text[len(reducer_prompt):].strip() # Less reliable
+
+
+            summary_text = final_generated_summary
+        except Exception as e:
+            print(f"Error generating final summary: {e}")
+            final_summary_text = "[Error generating final summary]"
+            summary_text = final_summary_text
 
     # Save the summary
     summary_filename = f"summary_{i+1}.txt"
