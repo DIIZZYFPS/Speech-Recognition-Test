@@ -11,7 +11,7 @@ torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
 
 model_id = "openai/whisper-large-v3-turbo" # This model is the most accurate, but also the slowest
 
-#model_id = "openai/whisper-tiny.en" # This model is smaller and faster, but less accurate
+model_id = "openai/whisper-tiny.en" # This model is smaller and faster, but less accurate
 
 #model_id = "openai/whisper-small.en" # This model is the sweet spot between speed and accuracy
 
